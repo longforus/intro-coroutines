@@ -13,6 +13,7 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import java.util.Base64
+import java.util.concurrent.TimeUnit
 
 interface GitHubService {
     @GET("orgs/{org}/repos?per_page=100")
@@ -25,6 +26,17 @@ interface GitHubService {
         @Path("owner") owner: String,
         @Path("repo") repo: String
     ): Call<List<User>>
+
+    @GET("orgs/{org}/repos?per_page=100")
+   suspend fun getOrgRepos(
+        @Path("org") org: String
+    ): Response<List<Repo>>
+
+    @GET("repos/{owner}/{repo}/contributors?per_page=100")
+    suspend fun getRepoContributors(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String
+    ): Response<List<User>>
 }
 
 @Serializable
@@ -58,6 +70,7 @@ fun createGitHubService(username: String, password: String): GitHubService {
             val request = builder.build()
             chain.proceed(request)
         }
+        .readTimeout(40,TimeUnit.SECONDS)
         .build()
 
     val contentType = "application/json".toMediaType()

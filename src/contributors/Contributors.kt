@@ -25,7 +25,10 @@ interface Contributors: CoroutineScope {
     val job: Job
 
     override val coroutineContext: CoroutineContext
-        get() = job + Dispatchers.Main
+        get() = job + Dispatchers.Main + CoroutineExceptionHandler { coroutineContext, throwable ->
+            throwable.printStackTrace()
+            setActionsStatus(newLoadingEnabled = true)
+        }
 
     fun init() {
         // Start a new loading on 'load' click
@@ -79,9 +82,11 @@ interface Contributors: CoroutineScope {
                 }.setUpCancellation()
             }
             CONCURRENT -> { // Performing requests concurrently
-                launch {
+                launch(Dispatchers.Default) {
                     val users = loadContributorsConcurrent(service, req)
-                    updateResults(users, startTime)
+                    withContext(Dispatchers.Main){
+                        updateResults(users, startTime)
+                    }
                 }.setUpCancellation()
             }
             NOT_CANCELLABLE -> { // Performing requests in a non-cancellable way
