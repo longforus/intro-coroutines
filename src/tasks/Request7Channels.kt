@@ -19,21 +19,18 @@ suspend fun loadContributorsChannels(
 
         var allUser = listOf<User>()
         val channel = Channel<List<User>>()
-        val requestCount = AtomicInteger(0)
         repos.map { repo ->
             launch{
                 log("starting loading for ${repo.name}")
-              val users =   service.getRepoContributors(req.org, repo.name)
+                channel.send(service.getRepoContributors(req.org, repo.name)
                     .also { logUsers(repo, it) }
-                    .bodyList()
-                allUser = (allUser+users).aggregate()
-                requestCount.incrementAndGet()
-                channel.send(allUser)
+                    .bodyList())
             }
         }
 
         repeat(repos.size){
-            updateResults(channel.receive(),it==repos.size)
+            allUser = (allUser+channel.receive()).aggregate()
+            updateResults(allUser,it==repos.size)
         }
 
     }
